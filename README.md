@@ -11,6 +11,7 @@ A plugin for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harn
 - **Glass control panel**: the billing strip is frosted glass (translucent + backdrop blur) by default; the control panel lets you toggle it and tune 透明度 (opacity) / 模糊 (blur) / 饱和度 (saturation) live — preferences persist in `localStorage`.
 - **Strip position**: place the strip **above** (default, `conversation.input.dock`) or **below** the input box (`conversation.composer.dock`, inside the composer card) — one radio click, persisted in `localStorage`.
 - **Two-column control panel**: userToken on the left, 主题 (position + glass) on the right; stacks vertically on narrow screens.
+- **Balance alert**: set a warning threshold in the control panel; when the balance drops to ≤ the threshold, the 账户余额 value gets a red `!` and a **充值** button appears under the refresh timestamp, linking to the official top-up page (https://platform.deepseek.com/top_up).
 - Balance comes from the official public endpoint `GET https://api.deepseek.com/user/balance` (authenticated with `DEEPSEEK_API_KEY`); usage comes from the platform dashboard endpoint `https://platform.deepseek.com/api/v0/usage/by_api_key/cost` with Beijing-time (UTC+8) windows — the same source the platform page's 今天/昨天/本月 filters use (authenticated with the platform `userToken` — the official API does not expose usage queries).
 - Auto-refreshes every 60 s plus a manual refresh button; per-row error states (missing key, missing/expired token, network failure) with hover hints.
 - Follows the app's light/dark theme (`--dsw-*` tokens).
@@ -134,6 +135,7 @@ MIT
 - **玻璃质感调节**：账单条默认为毛玻璃（半透明 + 背景模糊）；控制面板内可开关玻璃效果，并实时调节**透明度 / 模糊 / 饱和度**，偏好保存在 `localStorage` 中。
 - **账单条位置**：可放在**输入框上方**（默认，`conversation.input.dock`）或**输入框下方**（`conversation.composer.dock`，输入卡片内部），单选切换、自动保存。
 - **双栏控制面板**：左侧 userToken、右侧「主题」（位置 + 玻璃质感），窄屏自动上下堆叠。
+- **余额预警**：在控制面板设置预警值；余额 ≤ 预警值时，账户余额数字后出现红色感叹号，并在「更新于」下方显示**充值**按钮，直达官方充值页（https://platform.deepseek.com/top_up）。
 - 余额来自官方公开接口 `GET https://api.deepseek.com/user/balance`（用 `DEEPSEEK_API_KEY` 认证）；用量来自平台控制台接口 `https://platform.deepseek.com/api/v0/usage/by_api_key/cost`，按北京时间（UTC+8）窗口查询——与平台用量页"今天/昨天/本月"同一数据源（用登录后拿到的平台 `userToken` 认证，官方 API 未开放用量查询）。
 - 每 60 秒自动刷新，另有手动刷新按钮；每行都有独立错误态（未配置 Key、缺少/过期 token、网络失败），悬停可见原因。
 - 自动跟随应用浅色/深色主题（`--dsw-*` 设计变量）。

@@ -97,7 +97,7 @@ try {
 
   // Platform-consistent truncation display: 32.317153 → 32.31, 11.359155 → 11.35.
   const stripText = stripBefore ? stripBefore.textContent : ''
-  const rowValues = stripBefore ? [...stripBefore.querySelectorAll('[role="button"] span:last-child')].map((el) => el.textContent) : []
+  const rowValues = stripBefore ? [...stripBefore.querySelectorAll('[role="button"] > span:last-child span:first-child')].map((el) => el.textContent) : []
   console.log('row values:', rowValues.join(' | '))
   if (!rowValues.includes('¥32.31')) throw new Error('expected truncated ¥32.31, got: ' + rowValues.join(' | '))
   if (!rowValues.includes('¥11.35')) throw new Error('expected truncated ¥11.35, got: ' + rowValues.join(' | '))
@@ -134,6 +134,34 @@ try {
   if (panel && panel.querySelectorAll('input[type="radio"]').length !== 2) throw new Error('expected 2 position radios')
   if (panel && !panel.querySelector('.dshub-panel-cols')) throw new Error('panel missing two-column layout')
   console.log('theme controls ok: radios=' + panel.querySelectorAll('input[type="radio"]').length + ' cols=' + !!panel.querySelector('.dshub-panel-cols'))
+
+  // Balance alert: threshold 200 with balance 110 → warning on; 50 → off.
+  // (Synthetic input events don't fire React onChange under jsdom, so drive
+  // the shared store directly — the same setter the panel's onChange calls.)
+  const alertInput = panel.querySelector('input[type="number"]')
+  if (!alertInput) throw new Error('panel missing balance alert input')
+  if (!panel.textContent.includes('余额预警')) throw new Error('panel missing 余额预警 section')
+  const balanceRowOf = (root) => [...root.querySelectorAll('[role="button"]')].find((el) => el.textContent.includes('账户余额'))
+  const topupOf = (root) => root.querySelector('a[href*="top_up"]')
+
+  moduleExports._stores.alertStore.set(200)
+  await sleep(80)
+  var warnedStrip = container.querySelector('[data-plugin="dsh-usage-blance"]')
+  var warnedRow = balanceRowOf(warnedStrip)
+  var warnedTopup = topupOf(warnedStrip)
+  console.log('alert on: row=', warnedRow && warnedRow.textContent, '| top-up link=', !!warnedTopup)
+  if (!warnedRow || !warnedRow.textContent.includes('!')) throw new Error('expected red exclamation on the balance row at/below threshold')
+  if (!warnedTopup) throw new Error('expected top-up link at/below threshold')
+
+  moduleExports._stores.alertStore.set(50)
+  await sleep(80)
+  warnedStrip = container.querySelector('[data-plugin="dsh-usage-blance"]')
+  warnedRow = balanceRowOf(warnedStrip)
+  warnedTopup = topupOf(warnedStrip)
+  console.log('alert off: row=', warnedRow && warnedRow.textContent, '| top-up link=', !!warnedTopup)
+  if (!warnedRow || warnedRow.textContent.includes('!')) throw new Error('expected exclamation gone above threshold')
+  if (warnedTopup) throw new Error('expected top-up link gone above threshold')
+  moduleExports._stores.alertStore.set(null)
 
   // The inactive twin (below slot, default pref = above) renders nothing.
   const belowContainer = document.createElement('div')
