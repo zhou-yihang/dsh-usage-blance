@@ -134,7 +134,9 @@ try {
   if (panel && !panel.textContent.includes('账单条位置')) throw new Error('panel missing 账单条位置 radios')
   if (panel && panel.querySelectorAll('input[type="radio"]').length !== 2) throw new Error('expected 2 position radios')
   if (panel && !panel.querySelector('.dshub-panel-cols')) throw new Error('panel missing two-column layout')
-  console.log('theme controls ok: radios=' + panel.querySelectorAll('input[type="radio"]').length + ' cols=' + !!panel.querySelector('.dshub-panel-cols'))
+  const panelClose = panel && panel.querySelector('button[aria-label="关闭"]')
+  if (panelClose && panelClose.parentElement.style.position !== 'sticky') throw new Error('expected sticky panel header (close button pinned to top-right)')
+  console.log('theme controls ok: radios=' + panel.querySelectorAll('input[type="radio"]').length + ' cols=' + !!panel.querySelector('.dshub-panel-cols') + ' stickyHeader=' + (panelClose ? panelClose.parentElement.style.position : 'n/a'))
 
   // Balance alert: threshold 200 with balance 110 → warning on; 50 → off.
   // (Synthetic input events don't fire React onChange under jsdom, so drive
