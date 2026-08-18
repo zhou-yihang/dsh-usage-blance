@@ -169,10 +169,18 @@ try {
   }
   console.log('position persisted:', localStorage.getItem('dsh-usage-blance:position'))
   if (localStorage.getItem('dsh-usage-blance:position') !== 'below') throw new Error('expected position pref persisted as below')
-  localStorage.removeItem('dsh-usage-blance:position')
 
+  // Hero fallback: when the below slot instance goes away (fresh
+  // conversation — composer.dock is not rendered there), the above twin
+  // must re-appear even though the preference is still 'below'.
   belowRoot.unmount()
   belowContainer.remove()
+  await sleep(80)
+  const aboveFallback = container.querySelector('[data-plugin="dsh-usage-blance"]')
+  console.log('above twin fallback after below unmount:', !!aboveFallback)
+  if (!aboveFallback) throw new Error('expected above twin to fall back when the below slot has no live instance (hero)')
+  if (aboveFallback.querySelectorAll('[role="button"]').length !== 5) throw new Error('expected 5 rows in the fallback twin')
+  localStorage.removeItem('dsh-usage-blance:position')
 
   console.log('data-slot-error cells:', container.querySelectorAll('[data-slot-error]').length)
   console.log('--- container html (trimmed) ---')
