@@ -17,11 +17,11 @@ A plugin for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harn
 
 Billing strip below the chat dialog (本月消费 · 本月日均 · 昨日消费 · 今日消费 · 账户余额):
 
-![billing strip below the chat dialog](docs/1.png)
+![billing strip below the chat dialog](docs/screenshot-billing-strip.png)
 
 Control panel (opens when clicking any billing row): userToken input, save / clear, and the retrieval guide:
 
-![userToken control panel](docs/2.png)
+![userToken control panel](docs/screenshot-control-panel.png)
 
 ## Install
 
@@ -137,11 +137,11 @@ MIT
 
 对话框下方的账单条（本月消费 · 本月日均 · 昨日消费 · 今日消费 · 账户余额）：
 
-![对话框下方的账单条](docs/1.png)
+![对话框下方的账单条](docs/screenshot-billing-strip.png)
 
 控制面板（点击任意账单行打开）：userToken 输入、保存/清除与获取教程：
 
-![userToken 控制面板](docs/2.png)
+![userToken 控制面板](docs/screenshot-control-panel.png)
 
 ## 安装
 
