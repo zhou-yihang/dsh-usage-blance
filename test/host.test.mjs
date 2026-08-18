@@ -6,22 +6,28 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
-  localDate,
   toFinite,
-  parseUsageEnvelope,
+  parseUsageBuckets,
   parseBalance,
   usageStats,
+  beijingDayStartSec,
+  beijingMonthStartSec,
+  beijingDayOfMonth,
   maskToken,
   internals,
   UsageAuthError
 } from '../lib/index.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const fixture = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'usage-cost.json'), 'utf8'))
+const fixture = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'usage-cost-buckets.json'), 'utf8'))
 
-test('localDate formats YYYY-MM-DD', () => {
-  assert.equal(localDate(new Date(2026, 0, 5, 23, 59)), '2026-01-05')
-})
+// Fixture epoch seconds (Beijing 00:00 of 08-01 / 08-17 / 08-18 in 2026).
+const BJ_AUG_01 = 1785513600
+const BJ_AUG_17 = 1786896000
+const BJ_AUG_18 = 1786982400
+
+// Fixed "now": 2026-08-18 12:00 Beijing (04:00 UTC).
+const NOW = new Date('2026-08-18T04:00:00Z')
 
 test('toFinite coerces string numbers and rejects junk', () => {
   assert.equal(toFinite('0.0352'), 0.0352)
@@ -30,56 +36,96 @@ test('toFinite coerces string numbers and rejects junk', () => {
   assert.ok(Number.isNaN(toFinite(null)))
 })
 
-test('parseUsageEnvelope sums per-day costs across models', () => {
-  const map = parseUsageEnvelope(fixture)
-  assert.equal(map.size, 3)
-  assert.ok(Math.abs(map.get('2026-08-16') - 0.4764) < 1e-9)
-  assert.equal(map.get('2026-08-17'), 0.1234)
-  assert.equal(map.get('2026-08-18'), 0.005)
+test('beijing calendar helpers pin the UTC+8 day/month boundaries', () => {
+  // 08-17 23:59:59 Beijing is still the 17th.
+  assert.equal(beijingDayStartSec(new Date('2026-08-17T15:59:59Z')), BJ_AUG_17)
+  // 08-18 00:00 Beijing = 08-17 16:00 UTC.
+  assert.equal(beijingDayStartSec(new Date('2026-08-17T16:00:00Z')), BJ_AUG_18)
+  assert.equal(beijingDayStartSec(NOW), BJ_AUG_18)
+  // Month start: 08-01 00:00 Beijing = 07-31 16:00 UTC.
+  assert.equal(beijingMonthStartSec(NOW), BJ_AUG_01)
+  // Beijing day-of-month: 08-01 00:00 Beijing counts as the 1st.
+  assert.equal(beijingDayOfMonth(new Date('2026-07-31T16:00:00Z')), 1)
+  assert.equal(beijingDayOfMonth(NOW), 18)
 })
 
-test('parseUsageEnvelope accepts biz_data as a one-element array', () => {
-  const map = parseUsageEnvelope({
+test('parseUsageBuckets sums bucket costs keyed by time', () => {
+  const map = parseUsageBuckets(fixture)
+  assert.equal(map.size, 5)
+  assert.equal(map.get(BJ_AUG_01), 1.2)
+  assert.equal(map.get(BJ_AUG_17), 0.5)
+  assert.equal(map.get(BJ_AUG_17 + 3600), 0.25)
+  assert.equal(map.get(BJ_AUG_18), 0.4)
+  assert.equal(map.get(BJ_AUG_18 + 3600), 0.6)
+})
+
+test('parseUsageBuckets merges duplicate bucket times', () => {
+  const body = {
     code: 0,
-    data: { biz_code: 0, biz_data: [fixture.data.biz_data] }
-  })
-  assert.equal(map.size, 3)
+    data: {
+      biz_code: 0,
+      biz_data: {
+        data: [
+          {
+            currency: 'CNY',
+            series: [
+              { buckets: [{ time: BJ_AUG_18, cost: 0.5 }] },
+              { buckets: [{ time: BJ_AUG_18, cost: 0.5 }] }
+            ]
+          }
+        ]
+      }
+    }
+  }
+  assert.equal(parseUsageBuckets(body).get(BJ_AUG_18), 1)
 })
 
-test('parseUsageEnvelope throws UsageAuthError on expired-session codes', () => {
+test('parseUsageBuckets throws UsageAuthError on expired-session codes', () => {
   for (const code of [40002, 40003]) {
     assert.throws(
-      () => parseUsageEnvelope({ code, data: { biz_code: code } }),
+      () => parseUsageBuckets({ code, data: { biz_code: code } }),
       (error) => error instanceof UsageAuthError && error.message.includes('已过期')
     )
   }
 })
 
-test('parseUsageEnvelope throws on non-zero envelope codes', () => {
-  assert.throws(() => parseUsageEnvelope({ code: 1 }), /code 1/)
+test('parseUsageBuckets throws on non-zero envelope codes', () => {
+  assert.throws(() => parseUsageBuckets({ code: 1 }), /code 1/)
+  assert.throws(() => parseUsageBuckets({ code: 0, data: { biz_code: 1 } }), /INVALID_PARAM|code 1/)
 })
 
-test('parseUsageEnvelope tolerates unknown shapes with an empty map', () => {
-  assert.equal(parseUsageEnvelope({ code: 0, data: { biz_code: 0, biz_data: { nope: 1 } } }).size, 0)
-  assert.throws(() => parseUsageEnvelope(null), /无法解析/)
-  assert.throws(() => parseUsageEnvelope('junk'), /无法解析/)
+test('parseUsageBuckets tolerates unknown shapes', () => {
+  assert.equal(parseUsageBuckets({ code: 0, data: { biz_code: 0, biz_data: { nope: 1 } } }).size, 0)
+  assert.throws(() => parseUsageBuckets(null), /无法解析/)
+  assert.throws(() => parseUsageBuckets('junk'), /无法解析/)
 })
 
-test('usageStats computes month / avg / yesterday / today', () => {
-  const map = parseUsageEnvelope(fixture)
-  // Fixed "now": 2026-08-18 noon, local time.
-  const now = new Date(2026, 7, 18, 12, 0, 0)
-  const stats = usageStats(map, now)
-  assert.ok(Math.abs(stats.month - 0.6048) < 1e-9)
-  assert.ok(Math.abs(stats.monthAvg - 0.6048 / 18) < 1e-9)
-  assert.equal(stats.yesterday, 0.1234)
-  assert.equal(stats.today, 0.005)
+test('usageStats computes Beijing-bucketed month / avg / yesterday / today', () => {
+  const map = parseUsageBuckets(fixture)
+  const stats = usageStats(map, NOW)
+  assert.ok(Math.abs(stats.month - 2.95) < 1e-9)
+  assert.ok(Math.abs(stats.monthAvg - 0.163889) < 1e-6)
+  assert.equal(stats.yesterday, 0.75)
+  assert.equal(stats.today, 1)
   assert.equal(stats.currency, 'CNY')
 })
 
-test('usageStats treats missing rows as zero', () => {
-  const stats = usageStats(new Map([['2026-08-01', 3]]), new Date(2026, 7, 18, 9, 0, 0))
-  assert.equal(stats.month, 3)
+test('usageStats puts a bucket exactly at Beijing midnight into its own day', () => {
+  const map = new Map([
+    [BJ_AUG_17, 5], // yesterday 00:00
+    [BJ_AUG_18, 7], // today 00:00
+    [BJ_AUG_18 + 86399, 1] // today 23:59:59 — still today
+  ])
+  const stats = usageStats(map, NOW)
+  assert.equal(stats.yesterday, 5)
+  assert.equal(stats.today, 8)
+  assert.equal(stats.month, 13)
+})
+
+test('usageStats treats missing data as zero', () => {
+  const stats = usageStats(new Map(), NOW)
+  assert.equal(stats.month, 0)
+  assert.equal(stats.monthAvg, 0)
   assert.equal(stats.yesterday, 0)
   assert.equal(stats.today, 0)
 })

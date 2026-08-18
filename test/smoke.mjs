@@ -12,7 +12,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const usageFixture = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'usage-cost.json'), 'utf8'))
+const usageFixture = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'usage-cost-buckets.json'), 'utf8'))
 
 // ---- sandbox: temp DSH_HOME with a credentials file + saved token ---------
 const home = mkdtempSync(join(tmpdir(), 'dsh-usage-blance-smoke-'))
@@ -35,7 +35,7 @@ globalThis.fetch = async (url) => {
       }
     }
   }
-  if (String(url).includes('/api/v0/usage/cost')) {
+  if (String(url).includes('/api/v0/usage/by_api_key/cost')) {
     return { ok: true, status: 200, async json() { return usageFixture } }
   }
   return { ok: false, status: 404, async text() { return '{}' }, async json() { return {} } }
@@ -120,11 +120,13 @@ try {
   assert.equal(out.json.validated, true)
   assert.equal(out.json.masked, 'smok…3456')
 
-  // Overview now carries all five figures (fixture is dated around "today").
+  // Overview now carries all five figures (fixture buckets are Beijing-keyed
+  // around "today": 08-01 ¥1.2 + 08-17 ¥0.75 + 08-18 ¥1.0 = ¥2.95).
   out = await call('GET', '/api/dsh-usage/overview')
   assert.equal(out.json.tokenConfigured, true)
-  assert.ok(Math.abs(out.json.usage.month - 0.6048) < 1e-9, `month=${out.json.usage.month}`)
-  assert.equal(out.json.usage.yesterday, 0.1234)
+  assert.ok(Math.abs(out.json.usage.month - 2.95) < 1e-9, `month=${out.json.usage.month}`)
+  assert.equal(out.json.usage.yesterday, 0.75)
+  assert.equal(out.json.usage.today, 1)
   assert.equal(out.json.usage.currency, 'CNY')
   assert.equal(out.json.usageError, null)
 

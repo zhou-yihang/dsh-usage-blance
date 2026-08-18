@@ -1,0 +1,34 @@
+{
+  "code": 0,
+  "msg": "",
+  "data": {
+    "biz_code": 0,
+    "biz_msg": "",
+    "biz_data": {
+      "start": 1785513600,
+      "end": 1787068800,
+      "bucket": 3600,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "data": [
+        {
+          "currency": "CNY",
+          "series": [
+            {
+              "api_key": "sk-xxxxxxxx",
+              "model": "deepseek-v4-pro",
+              "buckets": [
+                { "time": 1785513600, "cost": 1.2 },
+                { "time": 1786896000, "cost": 0.5 },
+                { "time": 1786899600, "cost": 0.25 },
+                { "time": 1786982400, "cost": 0.4 },
+                { "time": 1786986000, "cost": 0.6 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

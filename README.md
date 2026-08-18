@@ -8,7 +8,7 @@ A plugin for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harn
 
 - Shows five figures in order: **本月消费 · 本月日均 · 昨日消费 · 今日消费 · 账户余额**.
 - **Click any billing row** to open the **control panel**: a `userToken` input with save / clear, the current token status, and step-by-step instructions for finding the token.
-- Balance comes from the official public endpoint `GET https://api.deepseek.com/user/balance` (authenticated with `DEEPSEEK_API_KEY`); usage comes from the platform dashboard endpoint `https://platform.deepseek.com/api/v0/usage/cost` (authenticated with the platform `userToken` — the official API does not expose usage queries).
+- Balance comes from the official public endpoint `GET https://api.deepseek.com/user/balance` (authenticated with `DEEPSEEK_API_KEY`); usage comes from the platform dashboard endpoint `https://platform.deepseek.com/api/v0/usage/by_api_key/cost` with Beijing-time (UTC+8) windows — the same source the platform page's 今天/昨天/本月 filters use (authenticated with the platform `userToken` — the official API does not expose usage queries).
 - Auto-refreshes every 60 s plus a manual refresh button; per-row error states (missing key, missing/expired token, network failure) with hover hints.
 - Follows the app's light/dark theme (`--dsw-*` tokens).
 - Secrets never leave your machine: the browser only talks to local routes registered by the host half.
@@ -85,10 +85,10 @@ The plugin reads the **same API key the harness already uses**: `DEEPSEEK_API_KE
 ## Data sources & privacy
 
 - Balance: `GET https://api.deepseek.com/user/balance` — official public API, `Authorization: Bearer <DEEPSEEK_API_KEY>`.
-- Usage: `GET https://platform.deepseek.com/api/v0/usage/cost?month=<m>&year=<y>` — a **private dashboard endpoint** (may change without notice), `Authorization: Bearer <userToken>`.
-- Month figures are computed from the per-day cost rows of the current month: 本月日均 = 本月消费 ÷ 本月已过天数; 昨日/今日 are the corresponding rows (missing rows count as zero).
+- Usage: `GET https://platform.deepseek.com/api/v0/usage/by_api_key/cost?start=<sec>&end=<sec>&tz=<offset>` — a **private dashboard endpoint** (may change without notice), `Authorization: Bearer <userToken>`. This is the same source the platform usage page's 今天/昨天/本月 filters aggregate.
+- Windows are anchored to **Beijing time (UTC+8)**: `start`/`end` are Beijing midnights in epoch seconds and `tz=28800` buckets the response by Beijing calendar days — the plain `/usage/cost?month=&year=` endpoint keys its day rows by UTC, which would shift each day's 00:00–08:00 usage into the previous row.
+- Month figures come from one month window (daily buckets): 本月消费 = sum of all buckets; 本月日均 = 本月消费 ÷ 本月已过天数; 昨日/今日 = their Beijing-day buckets (missing data counts as zero).
 - Neither the API key nor the userToken ever reaches the browser beyond the local routes above; the API key is read host-side per request and the userToken is stored in plain text under `$DSH_HOME/storages/` (protect that directory accordingly).
-- Date math uses the local calendar day (UTC+8 / China Standard Time matches DeepSeek Platform billing).
 
 ## Development
 
@@ -118,7 +118,7 @@ MIT
 
 - 依次显示五项指标：**本月消费 · 本月日均 · 昨日消费 · 今日消费 · 账户余额**。
 - **点击任意账单行**弹出**控制面板**：`userToken` 输入框（保存/清除）、当前配置状态，以及分步骤的 userToken 获取教程。
-- 余额来自官方公开接口 `GET https://api.deepseek.com/user/balance`（用 `DEEPSEEK_API_KEY` 认证）；用量来自平台控制台接口 `https://platform.deepseek.com/api/v0/usage/cost`（用登录后拿到的平台 `userToken` 认证——官方 API 未开放用量查询）。
+- 余额来自官方公开接口 `GET https://api.deepseek.com/user/balance`（用 `DEEPSEEK_API_KEY` 认证）；用量来自平台控制台接口 `https://platform.deepseek.com/api/v0/usage/by_api_key/cost`，按北京时间（UTC+8）窗口查询——与平台用量页"今天/昨天/本月"同一数据源（用登录后拿到的平台 `userToken` 认证，官方 API 未开放用量查询）。
 - 每 60 秒自动刷新，另有手动刷新按钮；每行都有独立错误态（未配置 Key、缺少/过期 token、网络失败），悬停可见原因。
 - 自动跟随应用浅色/深色主题（`--dsw-*` 设计变量）。
 - 密钥不出本机：浏览器只访问宿主侧注册的本地路由。
@@ -194,10 +194,10 @@ dsh plugin --profile web add .
 ## 数据来源与隐私
 
 - 余额：`GET https://api.deepseek.com/user/balance`——官方公开 API，`Authorization: Bearer <DEEPSEEK_API_KEY>`。
-- 用量：`GET https://platform.deepseek.com/api/v0/usage/cost?month=<m>&year=<y>`——**平台私有接口**（可能随时变更），`Authorization: Bearer <userToken>`。
-- 月度指标由当月逐日费用行计算：本月日均 = 本月消费 ÷ 本月已过天数；昨日/今日取对应行（无行记 0）。
+- 用量：`GET https://platform.deepseek.com/api/v0/usage/by_api_key/cost?start=<sec>&end=<sec>&tz=<offset>`——**平台私有接口**（可能随时变更），`Authorization: Bearer <userToken>`。这正是平台用量页"今天/昨天/本月"筛选聚合的同一数据源。
+- 时间窗口锚定**北京时间（UTC+8）**：`start`/`end` 为北京时间零点（epoch 秒）、`tz=28800` 按北京日历日分桶——旧的 `/usage/cost?month=&year=` 日行按 UTC 分桶，会把每天 00:00–08:00 的用量算进前一天。
+- 月度指标由单次月窗口查询（按天 bucket）计算：本月消费 = 全部 bucket 之和；本月日均 = 本月消费 ÷ 本月已过天数；昨日/今日 = 对应北京日历日的 bucket（无数据记 0）。
 - API Key 与 userToken 除上述本地路由外不会到达浏览器；API Key 由宿主侧每次请求时读取，userToken 以明文存于 `$DSH_HOME/storages/`（请自行保护好该目录）。
-- 日期按本地日历日计算（UTC+8 中国标准时间，与 DeepSeek 平台计费一致）。
 
 ## 开发
 
