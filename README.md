@@ -13,6 +13,16 @@ A plugin for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harn
 - Follows the app's light/dark theme (`--dsw-*` tokens).
 - Secrets never leave your machine: the browser only talks to local routes registered by the host half.
 
+## Screenshots
+
+Billing strip below the chat dialog (本月消费 · 本月日均 · 昨日消费 · 今日消费 · 账户余额):
+
+![billing strip below the chat dialog](docs/1.png)
+
+Control panel (opens when clicking any billing row): userToken input, save / clear, and the retrieval guide:
+
+![userToken control panel](docs/2.png)
+
 ## Install
 
 Requires the DSH CLI and [pnpm](https://pnpm.io/installation).
@@ -122,6 +132,16 @@ MIT
 - 每 60 秒自动刷新，另有手动刷新按钮；每行都有独立错误态（未配置 Key、缺少/过期 token、网络失败），悬停可见原因。
 - 自动跟随应用浅色/深色主题（`--dsw-*` 设计变量）。
 - 密钥不出本机：浏览器只访问宿主侧注册的本地路由。
+
+## 截图
+
+对话框下方的账单条（本月消费 · 本月日均 · 昨日消费 · 今日消费 · 账户余额）：
+
+![对话框下方的账单条](docs/1.png)
+
+控制面板（点击任意账单行打开）：userToken 输入、保存/清除与获取教程：
+
+![userToken 控制面板](docs/2.png)
 
 ## 安装
 
