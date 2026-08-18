@@ -162,6 +162,11 @@ try {
   console.log('below twin visible after switch:', !!belowAfter)
   if (!belowAfter) throw new Error('expected below twin to render after switching position (cross-instance sync)')
   if (belowAfter.querySelectorAll('[role="button"]').length !== 5) throw new Error('expected 5 rows in the below twin')
+  const belowWidth = belowAfter.style.width
+  console.log('below twin width style:', belowWidth)
+  if (!belowWidth.includes('var(--dsh-composer-side-clearance')) {
+    throw new Error('expected below twin to keep the input-box width formula, got ' + belowWidth)
+  }
   console.log('position persisted:', localStorage.getItem('dsh-usage-blance:position'))
   if (localStorage.getItem('dsh-usage-blance:position') !== 'below') throw new Error('expected position pref persisted as below')
   localStorage.removeItem('dsh-usage-blance:position')
