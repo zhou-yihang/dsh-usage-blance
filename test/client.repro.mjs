@@ -18,6 +18,7 @@ const dom = new JSDOM('<!doctype html><html><head></head><body></body></html>', 
 globalThis.window = dom.window
 globalThis.document = dom.window.document
 Object.defineProperty(globalThis, 'navigator', { value: dom.window.navigator, configurable: true })
+Object.defineProperty(globalThis, 'localStorage', { value: dom.window.localStorage, configurable: true })
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -62,15 +63,18 @@ const moduleExports = handoff.factory((spec) => {
   throw new Error('unexpected require spec: ' + spec)
 })
 
-// Fake slots ctx: capture the registered component.
-let Component = null
+// Fake slots ctx: capture components by registration id (two dock slots).
+const components = {}
 const fakeCtx = {
   slots: {
     inject(_name, fn) { fn() },
-    register(_spec, comp) { Component = comp }
+    register(spec, comp) { components[spec.id] = comp }
   }
 }
 moduleExports.apply(fakeCtx)
+const Above = components['dsh-usage-blance-above']
+const Below = components['dsh-usage-blance-below']
+if (!Above || !Below) throw new Error('expected two slot registrations (above/below)')
 
 // Any render/event error surfaces here (React rethrows render errors
 // through the root unless an error boundary swallows them).
@@ -84,7 +88,8 @@ document.body.appendChild(container)
 const root = createRoot(container)
 
 try {
-  root.render(React.createElement(Component))
+  // Default preference is 'above' → the above instance renders.
+  root.render(React.createElement(Above, { position: 'above' }))
   await sleep(100)
 
   const stripBefore = container.querySelector('[data-plugin="dsh-usage-blance"]')
@@ -124,7 +129,40 @@ try {
   if (panel) console.log('panel text head:', panel.textContent.slice(0, 80))
   if (panel && !panel.textContent.includes('玻璃质感')) throw new Error('panel missing 玻璃质感 controls')
   if (panel && panel.querySelectorAll('input[type="range"]').length !== 3) throw new Error('expected 3 glass sliders')
-  console.log('glass controls ok: toggle=' + !!panel.querySelector('input[type="checkbox"]') + ' sliders=' + panel.querySelectorAll('input[type="range"]').length)
+  if (panel && !panel.textContent.includes('主题')) throw new Error('panel missing 主题 column')
+  if (panel && !panel.textContent.includes('账单条位置')) throw new Error('panel missing 账单条位置 radios')
+  if (panel && panel.querySelectorAll('input[type="radio"]').length !== 2) throw new Error('expected 2 position radios')
+  if (panel && !panel.querySelector('.dshub-panel-cols')) throw new Error('panel missing two-column layout')
+  console.log('theme controls ok: radios=' + panel.querySelectorAll('input[type="radio"]').length + ' cols=' + !!panel.querySelector('.dshub-panel-cols'))
+
+  // The inactive twin (below slot, default pref = above) renders nothing.
+  const belowContainer = document.createElement('div')
+  document.body.appendChild(belowContainer)
+  const belowRoot = createRoot(belowContainer)
+  belowRoot.render(React.createElement(Below, { position: 'below' }))
+  await sleep(50)
+  const belowStrip = belowContainer.querySelector('[data-plugin="dsh-usage-blance"]')
+  console.log('below twin (inactive) renders:', !!belowStrip)
+  if (belowStrip) throw new Error('expected inactive below twin to render nothing')
+  belowRoot.unmount()
+  belowContainer.remove()
+
+  // Real flow: pick 输入框下方 in the panel → the above instance hides.
+  const belowRadio = panel.querySelectorAll('input[type="radio"]')[1]
+  try {
+    belowRadio.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, view: dom.window }))
+  } catch (error) {
+    console.log('radio click threw:', error && error.stack ? error.stack : String(error))
+    captured = captured ?? error
+  }
+  await sleep(100)
+  const aboveAfter = container.querySelector('[data-plugin="dsh-usage-blance"]')
+  console.log('above twin hidden after switch:', !aboveAfter)
+  if (aboveAfter) throw new Error('expected above twin to hide after switching position')
+  console.log('position persisted:', localStorage.getItem('dsh-usage-blance:position'))
+  if (localStorage.getItem('dsh-usage-blance:position') !== 'below') throw new Error('expected position pref persisted as below')
+  localStorage.removeItem('dsh-usage-blance:position')
+
   console.log('data-slot-error cells:', container.querySelectorAll('[data-slot-error]').length)
   console.log('--- container html (trimmed) ---')
   console.log(container.innerHTML.slice(0, 500))
