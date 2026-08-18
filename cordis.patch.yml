@@ -1,0 +1,4 @@
+# dsh-usage-blance bundle patch: inserts the usage monitor into the web roster.
+- insert:
+    - id: dsh-usage-blance
+      name: 'dsh-usage-blance'
