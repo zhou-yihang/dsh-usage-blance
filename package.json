@@ -1,6 +1,6 @@
 {
   "name": "dsh-usage-blance",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "DSH Web 插件：在对话框下方显示 DeepSeek API 用量与余额（本月消费 / 本月日均 / 昨日消费 / 今日消费 / 账户余额），点击账单行打开控制面板配置 userToken。Billing strip below the chat dialog for the DeepSeek Harness web GUI.",
   "type": "module",
   "main": "lib/index.js",
@@ -28,7 +28,7 @@
     }
   },
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test test/host.test.mjs"
   },
   "keywords": [
     "dsh",
@@ -51,5 +51,10 @@
   "engines": {
     "node": ">=18"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "jsdom": "^30.0.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
 }

@@ -71,7 +71,7 @@ The plugin reads the **same API key the harness already uses**: `DEEPSEEK_API_KE
 | Host half | `lib/index.js` | Cordis plugin (`inject: webServer`) registering `GET /api/dsh-usage/overview` (balance + month usage in one call) and `GET/POST/DELETE /api/dsh-usage/token` (token status / save+validate / clear). Balance and usage are cached for 60 s. |
 | Browser half | `lib/client.js` | `dsh.client` web bundle registering the billing strip into the `conversation.input.dock` slot; polls the overview every 60 s; clicking a row opens the control panel. |
 | Composition | `cordis.patch.yml` | The `dsh.bundle` patch layer that inserts the loader entry. |
-| Tests | `test/` | `node --test test/` runs host parsing/state unit tests; `node test/smoke.mjs` boots the host half against mocked services and exercises the real route handlers. |
+| Tests | `test/` | `npm test` runs the host parsing/state unit tests; `node test/smoke.mjs` boots the host half against mocked services and exercises the real route handlers; `node test/client.repro.mjs` renders the browser half under jsdom + react-dom and simulates a row click (panel opens, strip survives). |
 
 ### Local routes
 
@@ -95,8 +95,9 @@ The plugin reads the **same API key the harness already uses**: `DEEPSEEK_API_KE
 ```sh
 git clone https://github.com/zhou-yihang/dsh-usage-blance.git
 cd dsh-usage-blance
-npm test        # node --test test/  (unit tests)
-node test/smoke.mjs
+npm test        # 单元测试（node --test test/host.test.mjs）
+node test/smoke.mjs        # 宿主侧 mock 全链路
+node test/client.repro.mjs # 浏览器侧 jsdom 点击复现
 # install locally and test in the web GUI:
 dsh plugin --profile web add .
 ```
@@ -179,7 +180,7 @@ dsh plugin --profile web add .
 | 宿主侧 | `lib/index.js` | Cordis 插件（`inject: webServer`），注册 `GET /api/dsh-usage/overview`（一次返回余额+本月用量）与 `GET/POST/DELETE /api/dsh-usage/token`（状态 / 保存并验证 / 清除）。余额与用量各缓存 60 秒。 |
 | 浏览器侧 | `lib/client.js` | `dsh.client` 网页包，把账单条注册进 `conversation.input.dock` 插槽；每 60 秒轮询；点击账单行弹出控制面板。 |
 | 组合层 | `cordis.patch.yml` | `dsh.bundle` 补丁层，插入加载项。 |
-| 测试 | `test/` | `node --test test/` 跑解析/状态单测；`node test/smoke.mjs` 用 mock 服务启动宿主侧并走通全部真实路由逻辑。 |
+| 测试 | `test/` | `npm test` 跑宿主侧解析/状态单测；`node test/smoke.mjs` 用 mock 服务启动宿主侧并走通全部真实路由逻辑；`node test/client.repro.mjs` 在 jsdom + react-dom 中渲染浏览器侧并模拟点击（面板弹出、账单条不消失）。 |
 
 ### 本地路由
 
@@ -203,8 +204,9 @@ dsh plugin --profile web add .
 ```sh
 git clone https://github.com/zhou-yihang/dsh-usage-blance.git
 cd dsh-usage-blance
-npm test        # node --test test/（单元测试）
-node test/smoke.mjs
+npm test        # 单元测试（node --test test/host.test.mjs）
+node test/smoke.mjs        # 宿主侧 mock 全链路
+node test/client.repro.mjs # 浏览器侧 jsdom 点击复现
 # 本地安装并在网页界面中测试：
 dsh plugin --profile web add .
 ```
