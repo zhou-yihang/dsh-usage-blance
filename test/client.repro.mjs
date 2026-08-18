@@ -180,6 +180,11 @@ try {
   console.log('above twin fallback after below unmount:', !!aboveFallback)
   if (!aboveFallback) throw new Error('expected above twin to fall back when the below slot has no live instance (hero)')
   if (aboveFallback.querySelectorAll('[role="button"]').length !== 5) throw new Error('expected 5 rows in the fallback twin')
+  // The hero fallback must flow BELOW the input bar: flex `order` on the
+  // strip (the outlet anchor is display:contents, so the strip is a direct
+  // flex item of the composer stack).
+  console.log('fallback order style:', aboveFallback.style.order)
+  if (aboveFallback.style.order !== '10') throw new Error('expected fallback strip to reorder below the input (order 10), got ' + aboveFallback.style.order)
   localStorage.removeItem('dsh-usage-blance:position')
 
   console.log('data-slot-error cells:', container.querySelectorAll('[data-slot-error]').length)

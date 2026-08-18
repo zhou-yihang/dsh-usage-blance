@@ -1,6 +1,6 @@
 {
   "name": "dsh-usage-blance",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "DSH Web 插件：在对话框下方显示 DeepSeek API 用量与余额（本月消费 / 本月日均 / 昨日消费 / 今日消费 / 账户余额），点击账单行打开控制面板配置 userToken。Billing strip below the chat dialog for the DeepSeek Harness web GUI.",
   "type": "module",
   "main": "lib/index.js",
