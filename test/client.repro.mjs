@@ -98,6 +98,16 @@ try {
   if (!rowValues.includes('¥11.35')) throw new Error('expected truncated ¥11.35, got: ' + rowValues.join(' | '))
   if (!stripText.includes('$110.00')) throw new Error('expected balance $110.00')
 
+  // Glass material: default preference is applied via class + CSS vars.
+  if (!stripBefore.className.includes('dshub-strip')) throw new Error('strip missing dshub-strip class')
+  if (stripBefore.style.getPropertyValue('--dshub-glass-opacity') !== '52%') {
+    throw new Error('expected default glass opacity 52%, got ' + stripBefore.style.getPropertyValue('--dshub-glass-opacity'))
+  }
+  if (stripBefore.style.getPropertyValue('--dshub-glass-blur') !== '16px') {
+    throw new Error('expected default glass blur 16px')
+  }
+  console.log('glass vars ok:', stripBefore.style.getPropertyValue('--dshub-glass-opacity'), stripBefore.style.getPropertyValue('--dshub-glass-blur'))
+
   const firstRow = stripBefore && stripBefore.querySelector('[role="button"]')
   try {
     firstRow.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, view: dom.window }))
@@ -112,6 +122,9 @@ try {
   console.log('after click: strip present =', !!stripAfter)
   console.log('panel present =', !!panel)
   if (panel) console.log('panel text head:', panel.textContent.slice(0, 80))
+  if (panel && !panel.textContent.includes('玻璃质感')) throw new Error('panel missing 玻璃质感 controls')
+  if (panel && panel.querySelectorAll('input[type="range"]').length !== 3) throw new Error('expected 3 glass sliders')
+  console.log('glass controls ok: toggle=' + !!panel.querySelector('input[type="checkbox"]') + ' sliders=' + panel.querySelectorAll('input[type="range"]').length)
   console.log('data-slot-error cells:', container.querySelectorAll('[data-slot-error]').length)
   console.log('--- container html (trimmed) ---')
   console.log(container.innerHTML.slice(0, 500))

@@ -8,6 +8,7 @@ A plugin for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harn
 
 - Shows five figures in order: **本月消费 · 本月日均 · 昨日消费 · 今日消费 · 账户余额**.
 - **Click any billing row** to open the **control panel**: a `userToken` input with save / clear, the current token status, and step-by-step instructions for finding the token.
+- **Glass control panel**: the billing strip is frosted glass (translucent + backdrop blur) by default; the control panel lets you toggle it and tune 透明度 (opacity) / 模糊 (blur) / 饱和度 (saturation) live — preferences persist in `localStorage`.
 - Balance comes from the official public endpoint `GET https://api.deepseek.com/user/balance` (authenticated with `DEEPSEEK_API_KEY`); usage comes from the platform dashboard endpoint `https://platform.deepseek.com/api/v0/usage/by_api_key/cost` with Beijing-time (UTC+8) windows — the same source the platform page's 今天/昨天/本月 filters use (authenticated with the platform `userToken` — the official API does not expose usage queries).
 - Auto-refreshes every 60 s plus a manual refresh button; per-row error states (missing key, missing/expired token, network failure) with hover hints.
 - Follows the app's light/dark theme (`--dsw-*` tokens).
@@ -128,6 +129,7 @@ MIT
 
 - 依次显示五项指标：**本月消费 · 本月日均 · 昨日消费 · 今日消费 · 账户余额**。
 - **点击任意账单行**弹出**控制面板**：`userToken` 输入框（保存/清除）、当前配置状态，以及分步骤的 userToken 获取教程。
+- **玻璃质感调节**：账单条默认为毛玻璃（半透明 + 背景模糊）；控制面板内可开关玻璃效果，并实时调节**透明度 / 模糊 / 饱和度**，偏好保存在 `localStorage` 中。
 - 余额来自官方公开接口 `GET https://api.deepseek.com/user/balance`（用 `DEEPSEEK_API_KEY` 认证）；用量来自平台控制台接口 `https://platform.deepseek.com/api/v0/usage/by_api_key/cost`，按北京时间（UTC+8）窗口查询——与平台用量页"今天/昨天/本月"同一数据源（用登录后拿到的平台 `userToken` 认证，官方 API 未开放用量查询）。
 - 每 60 秒自动刷新，另有手动刷新按钮；每行都有独立错误态（未配置 Key、缺少/过期 token、网络失败），悬停可见原因。
 - 自动跟随应用浅色/深色主题（`--dsw-*` 设计变量）。
