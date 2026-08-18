@@ -105,6 +105,7 @@ try {
 
   // Glass material: default preference is applied via class + CSS vars.
   if (!stripBefore.className.includes('dshub-strip')) throw new Error('strip missing dshub-strip class')
+  if (stripBefore.style.zIndex !== '40') throw new Error('expected strip z-index 40 (stacking above the composer card), got ' + stripBefore.style.zIndex)
   if (stripBefore.style.getPropertyValue('--dshub-glass-opacity') !== '52%') {
     throw new Error('expected default glass opacity 52%, got ' + stripBefore.style.getPropertyValue('--dshub-glass-opacity'))
   }
