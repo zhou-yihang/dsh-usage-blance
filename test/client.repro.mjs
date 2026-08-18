@@ -152,6 +152,8 @@ try {
   console.log('alert on: row=', warnedRow && warnedRow.textContent, '| top-up link=', !!warnedTopup)
   if (!warnedRow || !warnedRow.textContent.includes('!')) throw new Error('expected red exclamation on the balance row at/below threshold')
   if (!warnedTopup) throw new Error('expected top-up link at/below threshold')
+  if (warnedTopup.textContent !== '去官网充值') throw new Error('expected top-up text 去官网充值, got ' + warnedTopup.textContent)
+  if (warnedTopup.style.width !== '100%') throw new Error('expected top-up button to span the status line width (width:100%)')
 
   moduleExports._stores.alertStore.set(50)
   await sleep(80)
