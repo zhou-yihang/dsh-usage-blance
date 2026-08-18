@@ -144,10 +144,9 @@ try {
   const belowStrip = belowContainer.querySelector('[data-plugin="dsh-usage-blance"]')
   console.log('below twin (inactive) renders:', !!belowStrip)
   if (belowStrip) throw new Error('expected inactive below twin to render nothing')
-  belowRoot.unmount()
-  belowContainer.remove()
 
-  // Real flow: pick 输入框下方 in the panel → the above instance hides.
+  // Real flow: pick 输入框下方 in the panel → the above instance hides AND
+  // the already-mounted below twin appears (shared store, both subscribed).
   const belowRadio = panel.querySelectorAll('input[type="radio"]')[1]
   try {
     belowRadio.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true, cancelable: true, view: dom.window }))
@@ -159,9 +158,16 @@ try {
   const aboveAfter = container.querySelector('[data-plugin="dsh-usage-blance"]')
   console.log('above twin hidden after switch:', !aboveAfter)
   if (aboveAfter) throw new Error('expected above twin to hide after switching position')
+  const belowAfter = belowContainer.querySelector('[data-plugin="dsh-usage-blance"]')
+  console.log('below twin visible after switch:', !!belowAfter)
+  if (!belowAfter) throw new Error('expected below twin to render after switching position (cross-instance sync)')
+  if (belowAfter.querySelectorAll('[role="button"]').length !== 5) throw new Error('expected 5 rows in the below twin')
   console.log('position persisted:', localStorage.getItem('dsh-usage-blance:position'))
   if (localStorage.getItem('dsh-usage-blance:position') !== 'below') throw new Error('expected position pref persisted as below')
   localStorage.removeItem('dsh-usage-blance:position')
+
+  belowRoot.unmount()
+  belowContainer.remove()
 
   console.log('data-slot-error cells:', container.querySelectorAll('[data-slot-error]').length)
   console.log('--- container html (trimmed) ---')
