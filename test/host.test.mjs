@@ -14,6 +14,7 @@ import {
   beijingMonthStartSec,
   beijingDayOfMonth,
   maskToken,
+  sanitizePrefs,
   internals,
   UsageAuthError
 } from '../lib/index.js'
@@ -168,12 +169,29 @@ test('state roundtrip persists and clears the userToken', () => {
     assert.ok(existsSync(join(dir, 'storages', 'dsh-usage-blance.json')))
     assert.equal(internals.readState().userToken, 'test-token-value')
 
-    // An empty token reads as "not configured" (clear semantics).
+    // An empty token reads as "not configured" (clear semantics) while the
+    // state object itself survives (it may still hold UI prefs).
     internals.writeState({ userToken: '' })
-    assert.equal(internals.readState(), null)
+    assert.deepEqual(internals.readState(), { userToken: '' })
   } finally {
     if (previousHome === undefined) delete process.env.DSH_HOME
     else process.env.DSH_HOME = previousHome
     rmSync(dir, { recursive: true, force: true })
   }
+})
+
+test('sanitizePrefs keeps known keys in bounds and drops junk', () => {
+  assert.deepEqual(sanitizePrefs({
+    position: 'below',
+    balanceAlert: 200,
+    glass: { enabled: false, opacity: 5, blur: 99, saturate: 3 }
+  }), {
+    position: 'below',
+    balanceAlert: 200,
+    glass: { enabled: false, opacity: 20, blur: 32, saturate: 2 }
+  })
+  assert.deepEqual(sanitizePrefs({ balanceAlert: null }), { balanceAlert: null })
+  assert.deepEqual(sanitizePrefs({ junk: 1, position: 'sideways', balanceAlert: -1 }), {})
+  assert.deepEqual(sanitizePrefs(null), {})
+  assert.deepEqual(sanitizePrefs('junk'), {})
 })

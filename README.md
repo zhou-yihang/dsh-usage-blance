@@ -107,6 +107,7 @@ The plugin reads the **same API key the harness already uses**: `DEEPSEEK_API_KE
 - Windows are anchored to **Beijing time (UTC+8)**: `start`/`end` are Beijing midnights in epoch seconds and `tz=28800` buckets the response by Beijing calendar days — the plain `/usage/cost?month=&year=` endpoint keys its day rows by UTC, which would shift each day's 00:00–08:00 usage into the previous row.
 - Month figures come from one month window (daily buckets): 本月消费 = sum of all buckets; 本月日均 = 本月消费 ÷ 本月已过天数; 昨日/今日 = their Beijing-day buckets (missing data counts as zero).
 - Neither the API key nor the userToken ever reaches the browser beyond the local routes above; the API key is read host-side per request and the userToken is stored in plain text under `$DSH_HOME/storages/` (protect that directory accordingly).
+- UI preferences (strip position, glass settings, balance alert threshold) are persisted both in browser `localStorage` and in `$DSH_HOME/storages/dsh-usage-blance.json`, so they survive browser restarts and storage clears.
 
 ## Development
 
@@ -234,6 +235,7 @@ dsh plugin --profile web add .
 - 时间窗口锚定**北京时间（UTC+8）**：`start`/`end` 为北京时间零点（epoch 秒）、`tz=28800` 按北京日历日分桶——旧的 `/usage/cost?month=&year=` 日行按 UTC 分桶，会把每天 00:00–08:00 的用量算进前一天。
 - 月度指标由单次月窗口查询（按天 bucket）计算：本月消费 = 全部 bucket 之和；本月日均 = 本月消费 ÷ 本月已过天数；昨日/今日 = 对应北京日历日的 bucket（无数据记 0）。
 - API Key 与 userToken 除上述本地路由外不会到达浏览器；API Key 由宿主侧每次请求时读取，userToken 以明文存于 `$DSH_HOME/storages/`（请自行保护好该目录）。
+- 界面偏好（账单条位置、玻璃质感、余额预警值）同时保存在浏览器 localStorage 与 `$DSH_HOME/storages/dsh-usage-blance.json` 中，重启浏览器或清空站点数据也不会丢失。
 
 ## 开发
 

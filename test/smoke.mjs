@@ -14,6 +14,30 @@ import { fileURLToPath } from 'node:url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const usageFixture = JSON.parse(readFileSync(join(__dirname, 'fixtures', 'usage-cost-buckets.json'), 'utf8'))
 
+// Date-independent expectations: derive yesterday/today from the fixture
+// relative to the real "now" (the fixture keys are absolute epoch seconds,
+// so hardcoded day assertions rot when the calendar date changes).
+const { beijingDayStartSec } = await import('../lib/index.js')
+const fixtureBuckets = new Map()
+for (const entry of usageFixture.data.biz_data.data) {
+  for (const series of entry.series) {
+    for (const b of series.buckets) {
+      fixtureBuckets.set(b.time, (fixtureBuckets.get(b.time) ?? 0) + b.cost)
+    }
+  }
+}
+const nowStart = beijingDayStartSec(new Date())
+const sumIn = (start, end) => {
+  let total = 0
+  for (const [time, cost] of fixtureBuckets) {
+    if (time >= start && time < end) total += cost
+  }
+  return Math.round(total * 1e6) / 1e6
+}
+const expectedYesterday = sumIn(nowStart - 86400, nowStart)
+const expectedToday = sumIn(nowStart, nowStart + 86400)
+const expectedMonth = Math.round([...fixtureBuckets.values()].reduce((a, b) => a + b, 0) * 1e6) / 1e6
+
 // ---- sandbox: temp DSH_HOME with a credentials file + saved token ---------
 const home = mkdtempSync(join(tmpdir(), 'dsh-usage-blance-smoke-'))
 process.env.DSH_HOME = home
@@ -101,10 +125,36 @@ try {
   assert.ok(effectCallback, 'apply registers routes via ctx.effect')
   const disposeRoutes = effectCallback()
 
-  assert.equal(routes.size, 2)
+  assert.equal(routes.size, 3)
+
+  // ---- UI prefs (host-persisted) -----------------------------------------
+  // GET starts empty.
+  let out = await call('GET', '/api/dsh-usage/prefs')
+  assert.equal(out.status, 200)
+  assert.deepEqual(out.json.prefs, {})
+
+  // POST merges sanitized known keys.
+  out = await call('POST', '/api/dsh-usage/prefs', JSON.stringify({
+    prefs: {
+      position: 'below',
+      balanceAlert: 200,
+      glass: { enabled: false, opacity: 30, blur: 8, saturate: 1.2 },
+      junk: 'dropped',
+      balanceJunk: -5
+    }
+  }))
+  assert.equal(out.status, 200)
+  assert.equal(out.json.prefs.position, 'below')
+  assert.equal(out.json.prefs.balanceAlert, 200)
+  assert.deepEqual(out.json.prefs.glass, { enabled: false, opacity: 30, blur: 8, saturate: 1.2 })
+  assert.equal(out.json.prefs.junk, undefined)
+
+  out = await call('GET', '/api/dsh-usage/prefs')
+  assert.equal(out.json.prefs.position, 'below')
+  assert.equal(out.json.prefs.balanceAlert, 200)
 
   // No token yet: balance ok, usage reports the no-token hint.
-  let out = await call('GET', '/api/dsh-usage/overview')
+  out = await call('GET', '/api/dsh-usage/overview')
   assert.equal(out.status, 200)
   assert.equal(out.json.ok, true)
   assert.equal(out.json.tokenConfigured, false)
@@ -120,13 +170,12 @@ try {
   assert.equal(out.json.validated, true)
   assert.equal(out.json.masked, 'smok…3456')
 
-  // Overview now carries all five figures (fixture buckets are Beijing-keyed
-  // around "today": 08-01 ¥1.2 + 08-17 ¥0.75 + 08-18 ¥1.0 = ¥2.95).
+  // Overview now carries all five figures (Beijing-keyed bucket sums).
   out = await call('GET', '/api/dsh-usage/overview')
   assert.equal(out.json.tokenConfigured, true)
-  assert.ok(Math.abs(out.json.usage.month - 2.95) < 1e-9, `month=${out.json.usage.month}`)
-  assert.equal(out.json.usage.yesterday, 0.75)
-  assert.equal(out.json.usage.today, 1)
+  assert.ok(Math.abs(out.json.usage.month - expectedMonth) < 1e-9, `month=${out.json.usage.month} expected=${expectedMonth}`)
+  assert.equal(out.json.usage.yesterday, expectedYesterday)
+  assert.equal(out.json.usage.today, expectedToday)
   assert.equal(out.json.usage.currency, 'CNY')
   assert.equal(out.json.usageError, null)
 
@@ -139,9 +188,12 @@ try {
   out = await call('POST', '/api/dsh-usage/token', 'not-json')
   assert.equal(out.status, 400)
 
-  // DELETE clears; overview falls back to the no-token hint.
+  // DELETE clears the token but preserves prefs (alert survives).
   out = await call('DELETE', '/api/dsh-usage/token')
   assert.equal(out.json.configured, false)
+  out = await call('GET', '/api/dsh-usage/prefs')
+  assert.equal(out.json.prefs.balanceAlert, 200)
+  assert.equal(out.json.prefs.position, 'below')
   out = await call('GET', '/api/dsh-usage/overview')
   assert.equal(out.json.tokenConfigured, false)
   assert.equal(out.json.usage, null)
@@ -151,7 +203,7 @@ try {
   disposeRoutes()
   assert.equal(routes.size, 0)
 
-  console.log('smoke ok: balance + usage + token lifecycle verified')
+  console.log('smoke ok: balance + usage + token + prefs lifecycle verified')
 } finally {
   globalThis.fetch = originalFetch
   delete process.env.DSH_HOME
